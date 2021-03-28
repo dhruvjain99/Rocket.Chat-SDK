@@ -13,92 +13,180 @@ import {
 } from '../../interfaces'
 
 export default class LivechatClient extends LivechatRest implements ISocket {
-  livechatStream: string = 'stream-livechat-room'
-  userId: string = ''
-  logger: ILogger = Logger
-  socket: Promise<ISocket | IDriver> = Promise.resolve() as any
-  constructor ({ logger, allPublic, rooms, integrationId, protocol = Protocols.DDP, ...config }: any) {
-    super({ logger, ...config })
-    this.import(protocol, config)
+  livechatStream: string = "stream-livechat-room";
+  userId: string = "";
+  logger: ILogger = Logger;
+  socket: Promise<ISocket | IDriver> = Promise.resolve() as any;
+  constructor({
+    logger,
+    allPublic,
+    rooms,
+    integrationId,
+    protocol = Protocols.DDP,
+    ...config
+  }: any) {
+    super({ logger, ...config });
+    this.import(protocol, config);
   }
-  import (protocol: Protocols, config: any) {
+  import(protocol: Protocols, config: any) {
     switch (protocol) {
       // case Protocols.MQTT:
       //   this.socket = import(/* webpackChunkName: 'mqtttest' */ '../drivers/mqtt').then(({ MQTTDriver }) => new MQTTDriver({ logger: this.logger, ...config }))
       //   break
       case Protocols.DDP:
-        this.socket = import(/* webpackChunkName: 'ddptest' */ '../drivers/ddp').then(({ DDPDriver }) => new DDPDriver({ logger: this.logger, ...config }))
-        break
+        this.socket = import(
+          /* webpackChunkName: 'ddptest' */ "../drivers/ddp"
+        ).then(
+          ({ DDPDriver }) => new DDPDriver({ logger: this.logger, ...config })
+        );
+        break;
       default:
-        throw new Error(`Invalid Protocol: ${protocol}, valids: ${Object.keys(Protocols).join()}`)
+        throw new Error(
+          `Invalid Protocol: ${protocol}, valids: ${Object.keys(
+            Protocols
+          ).join()}`
+        );
     }
   }
-  async connect (options: ISocketOptions, callback?: ICallback): Promise <any> {
-    return (await this.socket as ISocket).connect(options).then(() => (this.setUpConnection()))
+  async connect(options: ISocketOptions, callback?: ICallback): Promise<any> {
+    return ((await this.socket) as ISocket)
+      .connect(options)
+      .then(() => this.setUpConnection());
   }
-  async disconnect (): Promise<any> { return (await this.socket as ISocket).disconnect() }
-  async unsubscribe (subscription: ISubscription): Promise<any> { return (await this.socket as ISocket).unsubscribe(subscription) }
-  async unsubscribeAll (): Promise<any> { return (await this.socket as ISocket).unsubscribeAll() }
-  async subscribeNotifyAll (): Promise<any> { return (await this.socket as IDriver) .subscribeNotifyAll() }
-  async subscribeLoggedNotify (): Promise<any> { return (await this.socket as IDriver) .subscribeLoggedNotify() }
-  async subscribeNotifyUser (): Promise<any> { return (await this.socket as IDriver) .subscribeNotifyUser() }
-  async onMessage (cb: ICallback): Promise<any> { return (await this.socket as IDriver).onMessage(cb) }
-  async onTyping (cb: ICallback): Promise<any> { return (await this.socket as IDriver).onTyping(cb) }
-  async onAgentChange (rid: string, cb: ICallback) {
-    await this.subscribe(this.livechatStream, rid)
-    await this.onStreamData(this.livechatStream, ({ fields: { args: [{ type, data }] } }: any) => {
-      if (type === 'agentData') {
-        cb(data)
+  async disconnect(): Promise<any> {
+    return ((await this.socket) as ISocket).disconnect();
+  }
+  async unsubscribe(subscription: ISubscription): Promise<any> {
+    return ((await this.socket) as ISocket).unsubscribe(subscription);
+  }
+  async unsubscribeAll(): Promise<any> {
+    return ((await this.socket) as ISocket).unsubscribeAll();
+  }
+  async subscribeNotifyAll(): Promise<any> {
+    return ((await this.socket) as IDriver).subscribeNotifyAll();
+  }
+  async subscribeLoggedNotify(): Promise<any> {
+    return ((await this.socket) as IDriver).subscribeLoggedNotify();
+  }
+  async subscribeNotifyUser(): Promise<any> {
+    return ((await this.socket) as IDriver).subscribeNotifyUser();
+  }
+  async subscribeNotifyAgent(uid: string): Promise<any> {
+    return ((await this.socket) as IDriver).subscribeNotifyAgent(uid);
+  }
+  async onMessage(cb: ICallback): Promise<any> {
+    return ((await this.socket) as IDriver).onMessage(cb);
+  }
+  async onTyping(cb: ICallback): Promise<any> {
+    return ((await this.socket) as IDriver).onTyping(cb);
+  }
+  async onAgentChange(rid: string, cb: ICallback) {
+    await this.subscribe(this.livechatStream, rid);
+    await this.onStreamData(
+      this.livechatStream,
+      ({
+        fields: {
+          args: [{ type, data }],
+        },
+      }: any) => {
+        if (type === "agentData") {
+          cb(data);
+        }
       }
-    })
+    );
   }
-  async onAgentStatusChange (rid: string, cb: ICallback) {
-    await this.subscribe(this.livechatStream, rid)
-    await this.onStreamData(this.livechatStream, ({ fields: { args: [{ type, status }] } }: any) => {
-      if (type === 'agentStatus') {
-        cb(status)
+  async onAgentStatusChange(rid: string, cb: ICallback) {
+    await this.subscribe(this.livechatStream, rid);
+    await this.onStreamData(
+      this.livechatStream,
+      ({
+        fields: {
+          args: [{ type, status }],
+        },
+      }: any) => {
+        if (type === "agentStatus") {
+          cb(status);
+        }
       }
-    })
+    );
   }
 
-  async onQueuePositionChange (rid: string, cb: ICallback) {
-    await this.subscribe(this.livechatStream, rid)
-    await this.onStreamData(this.livechatStream, ({ fields: { args: [{ type, data }] } }: any) => {
-      if (type === 'queueData') {
-        cb(data)
+  async onQueuePositionChange(rid: string, cb: ICallback) {
+    await this.subscribe(this.livechatStream, rid);
+    await this.onStreamData(
+      this.livechatStream,
+      ({
+        fields: {
+          args: [{ type, data }],
+        },
+      }: any) => {
+        if (type === "queueData") {
+          cb(data);
+        }
       }
-    })
+    );
   }
 
-  async onVisitorChange (rid: string, cb: ICallback) {
-    await this.subscribe(this.livechatStream, rid)
-    await this.onStreamData(this.livechatStream, ({ fields: { args: [{ type, visitor }] } }: any) => {
-      if (type === 'visitorData') {
-        cb(visitor)
+  async onVisitorChange(rid: string, cb: ICallback) {
+    await this.subscribe(this.livechatStream, rid);
+    await this.onStreamData(
+      this.livechatStream,
+      ({
+        fields: {
+          args: [{ type, visitor }],
+        },
+      }: any) => {
+        if (type === "visitorData") {
+          cb(visitor);
+        }
       }
-    })
+    );
   }
 
-  async notifyVisitorTyping (rid: string, username: string, typing: boolean) {
-    return (await this.socket as IDriver).notifyVisitorTyping(rid, username, typing, this.credentials.token)
+  async notifyVisitorTyping(rid: string, username: string, typing: boolean) {
+    return ((await this.socket) as IDriver).notifyVisitorTyping(
+      rid,
+      username,
+      typing,
+      this.credentials.token
+    );
   }
 
-  async subscribe (topic: string, eventName: string) {
-    const { token } = this.credentials
-    return (await this.socket as ISocket).subscribe(topic, eventName, { token, visitorToken: token })
+  async notifyWebrtcAgent (agentId: string, typeOfData: string, data: object): Promise<any> {
+    return ((await this.socket) as IDriver).notifyWebrtcAgent(agentId, typeOfData, data);
   }
 
-  async subscribeRoom (rid: string) {
-    const { token } = this.credentials
-    return (await this.socket as IDriver).subscribeRoom(rid, { token, visitorToken: token })
+  async notifyVisitorCalling(rid: string, data: object) {
+    return ((await this.socket) as IDriver).notifyVisitorCalling(rid, data);
   }
 
-  async onStreamData (event: string, cb: ICallback): Promise<any> {
-    return (await this.socket as ISocket).onStreamData(event, cb)
+  async onAgentWebrtcNotification(cb: any): Promise<any> {
+    return ((await this.socket) as IDriver).onAgentWebrtcNotification(cb);
   }
 
-  async setUpConnection () {
-    const { token } = this.credentials
-    return (await this.socket as IDriver).methodCall('livechat:setUpConnection', { token })
+  async subscribe(topic: string, eventName: string) {
+    const { token } = this.credentials;
+    return ((await this.socket) as ISocket).subscribe(topic, eventName, {
+      token,
+      visitorToken: token,
+    });
+  }
+
+  async subscribeRoom(rid: string) {
+    const { token } = this.credentials;
+    return ((await this.socket) as IDriver).subscribeRoom(rid, {
+      token,
+      visitorToken: token,
+    });
+  }
+
+  async onStreamData(event: string, cb: ICallback): Promise<any> {
+    return ((await this.socket) as ISocket).onStreamData(event, cb);
+  }
+
+  async setUpConnection() {
+    const { token } = this.credentials;
+    return ((await this
+      .socket) as IDriver).methodCall("livechat:setUpConnection", { token });
   }
 }

@@ -32,26 +32,39 @@ export interface ISocket {
 }
 
 export interface IDriver {
-  config: any
-  login (credentials: ICredentials, args: any): Promise<any>
+  config: any;
+  login(credentials: ICredentials, args: any): Promise<any>;
 
-  subscribeRoom (rid: string, ...args: any[]): Promise<ISubscription[]>
+  subscribeRoom(rid: string, ...args: any[]): Promise<ISubscription[]>;
 
-  onMessage (cb: ICallback): void
+  onMessage(cb: ICallback): void;
 
-  subscribeNotifyAll (): Promise<any>
+  subscribeNotifyAll(): Promise<any>;
 
-  subscribeLoggedNotify (): Promise<any>
+  subscribeLoggedNotify(): Promise<any>;
 
-  subscribeNotifyUser (): Promise<any>
+  subscribeNotifyUser(): Promise<any>;
 
-  subscribeNotifyUser (): Promise<IDriver>
+  subscribeNotifyUser(): Promise<IDriver>;
 
-  onTyping (cb: ICallback): Promise<any>
+  subscribeNotifyAgent(uid: string): Promise<any>;
 
-  notifyVisitorTyping (rid: string, username: string, typing: boolean, token: string): Promise<any>
+  onTyping(cb: ICallback): Promise<any>;
 
-  methodCall (method: string, ...args: any[]): Promise<any>
+  notifyVisitorTyping(
+    rid: string,
+    username: string,
+    typing: boolean,
+    token: string
+  ): Promise<any>;
+
+  notifyWebrtcAgent (agentId: string, typeOfData: string, data: object): Promise<any>;
+
+  notifyVisitorCalling(rid: string, data: object): Promise<any>;
+
+  onAgentWebrtcNotification(cb: any): Promise<any>;
+
+  methodCall(method: string, ...args: any[]): Promise<any>;
 }
 
 export enum Protocols {

@@ -376,222 +376,302 @@ export class Socket extends EventEmitter {
 }
 
 export class DDPDriver extends EventEmitter implements ISocket, IDriver {
-  logger: ILogger
-  config: ISocketOptions
-	/**
-	 * Event Emitter for listening to connection (echoes selection of DDP events)
-	 * @example
-	 *  import { driver } from '@rocket.chat/sdk'
-	 *  driver.connect()
-	 *  driver.events.on('connected', () => console.log('driver connected'))
-	 */
-	// events = new EventEmitter()
+  logger: ILogger;
+  config: ISocketOptions;
+  /**
+   * Event Emitter for listening to connection (echoes selection of DDP events)
+   * @example
+   *  import { driver } from '@rocket.chat/sdk'
+   *  driver.connect()
+   *  driver.events.on('connected', () => console.log('driver connected'))
+   */
+  // events = new EventEmitter()
 
-	/**
-	 * An Websocket instance for interacting with Rocket.Chat.
-	 * Variable not initialised until `connect` called.
-	 */
-  ddp: Socket
+  /**
+   * An Websocket instance for interacting with Rocket.Chat.
+   * Variable not initialised until `connect` called.
+   */
+  ddp: Socket;
 
-	/**
-	 * Websocket subscriptions, exported for direct polling by adapters
-	 * Variable not initialised until `prepMeteorSubscriptions` called.
-	 * @deprecated Use `ddp.Socket` instance subscriptions instead.
-	 */
-  subscriptions: { [id: string]: ISubscription } = {}
+  /**
+   * Websocket subscriptions, exported for direct polling by adapters
+   * Variable not initialised until `prepMeteorSubscriptions` called.
+   * @deprecated Use `ddp.Socket` instance subscriptions instead.
+   */
+  subscriptions: { [id: string]: ISubscription } = {};
 
-	/** Save messages subscription to ensure only one created */
-  messages: ISubscription | undefined
+  /** Save messages subscription to ensure only one created */
+  messages: ISubscription | undefined;
 
-	/** Current user object populated from resolved login */
-  userId: string = ''
+  /** Current user object populated from resolved login */
+  userId: string = "";
 
-	/** Array of joined room IDs (for reactive queries) */
-  joinedIds: string[] = []
+  /** Array of joined room IDs (for reactive queries) */
+  joinedIds: string[] = [];
 
-  constructor ({ host = 'localhost:3000', integrationId, config, logger = Logger, ...moreConfigs }: any = {}) {
-    super()
+  constructor({
+    host = "localhost:3000",
+    integrationId,
+    config,
+    logger = Logger,
+    ...moreConfigs
+  }: any = {}) {
+    super();
 
     this.config = {
       ...config,
       ...moreConfigs,
-      host: host.replace(/(^\w+:|^)\/\//, ''),
-      timeout: 20000
-			// reopen: number
-			// ping: number
-			// close: number
-			// integration: string
-    }
-    this.ddp = new Socket({ ...this.config, logger })
-    this.logger = logger
+      host: host.replace(/(^\w+:|^)\/\//, ""),
+      timeout: 20000,
+      // reopen: number
+      // ping: number
+      // close: number
+      // integration: string
+    };
+    this.ddp = new Socket({ ...this.config, logger });
+    this.logger = logger;
   }
 
-	/**
-	 * Initialise socket instance with given options or defaults.
-	 * Proxies the DDP module socket connection. Resolves with socket when open.
-	 * Accepts callback following error-first-pattern.
-	 * Error returned or promise rejected on timeout.
-	 * @example <caption>Using promise</caption>
-	 *  import { driver } from '@rocket.chat/sdk'
-	 *  driver.connect()
-	 *    .then(() => console.log('connected'))
-	 *    .catch((err) => console.error(err))
-	 */
+  /**
+   * Initialise socket instance with given options or defaults.
+   * Proxies the DDP module socket connection. Resolves with socket when open.
+   * Accepts callback following error-first-pattern.
+   * Error returned or promise rejected on timeout.
+   * @example <caption>Using promise</caption>
+   *  import { driver } from '@rocket.chat/sdk'
+   *  driver.connect()
+   *    .then(() => console.log('connected'))
+   *    .catch((err) => console.error(err))
+   */
   connect = (c: any = {}): Promise<any> => {
     if (this.connected) {
-      return Promise.resolve(this)
+      return Promise.resolve(this);
     }
-    const config: ISocketOptions = { ...this.config, ...c } // override defaults
+    const config: ISocketOptions = { ...this.config, ...c }; // override defaults
 
     return new Promise((resolve, reject) => {
-      this.logger.info('[driver] Connecting', config)
-      this.subscriptions = this.ddp.subscriptions
+      this.logger.info("[driver] Connecting", config);
+      this.subscriptions = this.ddp.subscriptions;
       this.ddp.open().catch((err: Error) => {
-        this.logger.error(`[driver] Failed to connect: ${err.message}`)
-        reject(err)
-      })
+        this.logger.error(`[driver] Failed to connect: ${err.message}`);
+        reject(err);
+      });
 
-      this.ddp.on('open', () => this.emit('connected')) // echo ddp event
+      this.ddp.on("open", () => this.emit("connected")); // echo ddp event
 
-      let cancelled = false
+      let cancelled = false;
       const rejectionTimeout = setTimeout(() => {
-        this.logger.info(`[driver] Timeout (${config.timeout})`)
-        const err = new Error('Socket connection timeout')
-        cancelled = true
-        this.ddp.removeAllListeners('connected')
-        reject(err)
-      }, config.timeout)
+        this.logger.info(`[driver] Timeout (${config.timeout})`);
+        const err = new Error("Socket connection timeout");
+        cancelled = true;
+        this.ddp.removeAllListeners("connected");
+        reject(err);
+      }, config.timeout);
 
-			// if to avoid condition where timeout happens before listener to 'connected' is added
-			// and this listener is not removed (because it was added after the removal)
+      // if to avoid condition where timeout happens before listener to 'connected' is added
+      // and this listener is not removed (because it was added after the removal)
       if (!cancelled) {
-        this.once('connected', () => {
-          this.logger.info('[driver] Connected')
-          if (cancelled) return this.ddp.close() // cancel if already rejected
-          clearTimeout(rejectionTimeout)
-          resolve(this as IDriver)
-        })
+        this.once("connected", () => {
+          this.logger.info("[driver] Connected");
+          if (cancelled) return this.ddp.close(); // cancel if already rejected
+          clearTimeout(rejectionTimeout);
+          resolve(this as IDriver);
+        });
       }
-    })
-  }
+    });
+  };
 
-  get connected (): boolean {
-    return !!this.ddp.connected
+  get connected(): boolean {
+    return !!this.ddp.connected;
   }
 
   disconnect = (): Promise<any> => {
-    return this.ddp.close()
-  }
+    return this.ddp.close();
+  };
 
-  subscribe = (topic: string, eventname: string, ...args: any[]): Promise<ISubscription> => {
-    this.logger.info(`[DDP driver] Subscribing to ${topic} | ${JSON.stringify(args)}`)
-    return this.ddp.subscribe(topic, [eventname, { 'useCollection': false, 'args': args }])
-  }
+  subscribe = (
+    topic: string,
+    eventname: string,
+    ...args: any[]
+  ): Promise<ISubscription> => {
+    this.logger.info(
+      `[DDP driver] Subscribing to ${topic} | ${JSON.stringify(args)}`
+    );
+    return this.ddp.subscribe(topic, [
+      eventname,
+      { useCollection: false, args: args },
+    ]);
+  };
 
-  subscribeNotifyAll = (): Promise< any> => {
-    const topic = 'stream-notify-all'
-    return Promise.all([
-      'roles-change',
-      'updateEmojiCustom',
-      'deleteEmojiCustom',
-      'updateAvatar',
-      'public-settings-changed',
-      'permissions-changed'
-    ].map(event => this.subscribe(topic, event, false)))
-  }
+  subscribeNotifyAll = (): Promise<any> => {
+    const topic = "stream-notify-all";
+    return Promise.all(
+      [
+        "roles-change",
+        "updateEmojiCustom",
+        "deleteEmojiCustom",
+        "updateAvatar",
+        "public-settings-changed",
+        "permissions-changed",
+      ].map((event) => this.subscribe(topic, event, false))
+    );
+  };
 
   subscribeLoggedNotify = (): Promise<any> => {
-    const topic = 'stream-notify-logged'
-    return Promise.all([
-      'Users:NameChanged',
-      'Users:Deleted',
-      'updateAvatar',
-      'updateEmojiCustom',
-      'deleteEmojiCustom',
-      'roles-change'
-    ].map(event => this.subscribe(topic, event, false)))
-  }
+    const topic = "stream-notify-logged";
+    return Promise.all(
+      [
+        "Users:NameChanged",
+        "Users:Deleted",
+        "updateAvatar",
+        "updateEmojiCustom",
+        "deleteEmojiCustom",
+        "roles-change",
+      ].map((event) => this.subscribe(topic, event, false))
+    );
+  };
 
   subscribeNotifyUser = (): Promise<any> => {
-    const topic = 'stream-notify-user'
-    return Promise.all([
-      'message',
-      'otr',
-      'webrtc',
-      'notification',
-      'rooms-changed',
-      'subscriptions-changed',
-      'uiInteraction'
-    ].map(event => this.subscribe(topic, `${this.userId}/${event}`, false)))
-  }
+    const topic = "stream-notify-user";
+    return Promise.all(
+      [
+        "message",
+        "otr",
+        "webrtc",
+        "notification",
+        "rooms-changed",
+        "subscriptions-changed",
+        "uiInteraction",
+      ].map((event) => this.subscribe(topic, `${this.userId}/${event}`))
+    );
+  };
+
+  subscribeNotifyAgent = (uid: string): Promise<any> => {
+    const topic = "stream-notify-user";
+    return this.subscribe(topic, `${uid}/webrtc`)
+  };
 
   subscribeRoom = (rid: string, ...args: any[]): Promise<ISubscription[]> => {
-    const topic = 'stream-notify-room'
+    const topic = "stream-notify-room";
     return Promise.all([
-      this.subscribe('stream-room-messages', rid, ...args),
+      this.subscribe("stream-room-messages", rid, ...args),
       this.subscribe(topic, `${rid}/typing`, ...args),
-      this.subscribe(topic, `${rid}/deleteMessage`, ...args)
-    ])
-  }
+      this.subscribe(topic, `${rid}/deleteMessage`, ...args),
+    ]);
+  };
 
-	/** Login to Rocket.Chat via DDP */
+  /** Login to Rocket.Chat via DDP */
   login = async (credentials: ICredentials, args: any): Promise<any> => {
     if (!this.ddp || !this.ddp.connected) {
-      await this.connect()
+      await this.connect();
     }
-    this.logger.info(`[DDP driver] Login with ${JSON.stringify(credentials)}`)
-    const login: ILoginResult = await this.ddp.login(credentials)
-    this.userId = login.id
-    return login
-  }
+    this.logger.info(`[DDP driver] Login with ${JSON.stringify(credentials)}`);
+    const login: ILoginResult = await this.ddp.login(credentials);
+    this.userId = login.id;
+    return login;
+  };
   logout = async () => {
     if (this.ddp && this.ddp.connected) {
-      await this.ddp.logout()
+      await this.ddp.logout();
     }
-
-  }
-	/** Unsubscribe from Meteor stream. Proxy for socket unsubscribe. */
+  };
+  /** Unsubscribe from Meteor stream. Proxy for socket unsubscribe. */
   unsubscribe = (subscription: ISubscription) => {
-    return this.ddp.unsubscribe(subscription.id)
-  }
+    return this.ddp.unsubscribe(subscription.id);
+  };
 
-	/** Unsubscribe from all subscriptions. Proxy for socket unsubscribeAll */
+  /** Unsubscribe from all subscriptions. Proxy for socket unsubscribeAll */
   unsubscribeAll = (): Promise<any> => {
-    return this.ddp.unsubscribeAll()
-  }
+    return this.ddp.unsubscribeAll();
+  };
 
   onStreamData = (event: string, cb: ICallback): Promise<any> => {
-    function listener (message: any) {
-      cb((message))
+    function listener(message: any) {
+      cb(message);
     }
-    return Promise.resolve(this.ddp.on(event, listener))
-      .then(() => ({
-        stop: () => this.ddp.off(event, listener)
-      }))
-  }
+    return Promise.resolve(this.ddp.on(event, listener)).then(() => ({
+      stop: () => this.ddp.off(event, listener),
+    }));
+  };
 
   onMessage = (cb: ICallback): void => {
-    this.ddp.on('stream-room-messages', ({ fields: { args: [message] } }: any) => cb(this.ejsonMessage(message)))
-  }
+    this.ddp.on(
+      "stream-room-messages",
+      ({
+        fields: {
+          args: [message],
+        },
+      }: any) => cb(this.ejsonMessage(message))
+    );
+  };
 
-  onTyping = (cb: ICallback): Promise<any > => {
-    return this.ddp.on('stream-notify-room', ({ fields: { args: [username, isTyping] } }: any) => {
-      cb(username, isTyping)
-    }) as any
-  }
+  onTyping = (cb: ICallback): Promise<any> => {
+    return this.ddp.on(
+      "stream-notify-rooms",
+      ({
+        fields: {
+          args: [username, isTyping],
+        },
+      }: any) => {
+        cb(username, isTyping);
+      }
+    ) as any;
+  };
 
-  notifyVisitorTyping = (rid: string, username: string, typing: boolean, token: string) => {
-    return this.ddp.call('stream-notify-room', `${ rid }/typing`, username, typing, { token })
-  }
+  notifyVisitorTyping = (
+    rid: string,
+    username: string,
+    typing: boolean,
+    token: string
+  ) => {
+    return this.ddp.call(
+      "stream-notify-room",
+      `${rid}/typing`,
+      username,
+      typing,
+      { token }
+    );
+  };
+
+  notifyWebrtcAgent = (agentId: string, typeOfData: string, data: object) => {
+    return this.ddp.call(
+      "stream-notify-user",
+      `${agentId}/webrtc`,
+      typeOfData,
+      data
+    );
+  };
+
+  notifyVisitorCalling = (rid: string, data: object) => {
+    return this.ddp.call(
+      "stream-notify-room-users",
+      `${rid}/webrtc`,
+      "call",
+      data
+    );
+  };
+
+  onAgentWebrtcNotification = (cb: any) => {
+    return this.ddp.on(
+      "stream-notify-user",
+      ({
+        fields: {
+          args: [type, data]
+        }
+      }: any) => {
+        cb(type, data);
+      }
+    ) as any;
+  };
 
   ejsonMessage = (message: any) => {
     if (message.ts) {
-      message.ts = new Date(message.ts.$date)
+      message.ts = new Date(message.ts.$date);
     }
-    return message
-  }
+    return message;
+  };
 
   methodCall = (method: string, ...args: any[]): Promise<any> => {
-    return this.ddp.call(method, ...args)
-  }
+    return this.ddp.call(method, ...args);
+  };
 }
