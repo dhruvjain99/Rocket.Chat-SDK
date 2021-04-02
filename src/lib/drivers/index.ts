@@ -52,6 +52,15 @@ export interface IDriver {
   notifyVisitorTyping (rid: string, username: string, typing: boolean, token: string): Promise<any>
 
   methodCall (method: string, ...args: any[]): Promise<any>
+  // LIVECHAT WEBRTC ---->
+  subscribeNotifyVisitor (uid: string, token: string): Promise<any>;
+
+  notifyWebrtcAgent (agentId: string, eventType: string, data: object, token: string): Promise<any>;
+
+  notifyVisitorCalling(rid: string, data: object, token: string): Promise<any>;
+
+  onAgentWebrtcNotification(cb: any): Promise<any>;
+  
 }
 
 export enum Protocols {

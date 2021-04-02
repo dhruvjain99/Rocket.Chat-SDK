@@ -130,4 +130,20 @@ export class MQTTDriver extends EventEmitter implements ISocket, IDriver {
   methodCall = (method: string, ...args: any[]): Promise<any> => {
     return Promise.resolve() as any
   }
+  // LIVECHAT WEBRTC ---->
+  notifyWebrtcAgent = (agentId: string, eventType: string, data: object, token: string): Promise<any> => {
+    return Promise.resolve() as any;
+  }
+
+  notifyVisitorCalling = (rid: string, data: object, token: string): Promise<any> => {
+    return Promise.resolve() as any;
+  };
+
+  onAgentWebrtcNotification = (cb: any): Promise<any> => {
+    return Promise.resolve() as any;
+  };
+
+  subscribeNotifyVisitor = (uid: string, token: string): Promise<any> => {
+    return Promise.resolve() as any;
+  }
 }

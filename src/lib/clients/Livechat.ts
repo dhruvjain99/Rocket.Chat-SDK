@@ -101,4 +101,21 @@ export default class LivechatClient extends LivechatRest implements ISocket {
     const { token } = this.credentials
     return (await this.socket as IDriver).methodCall('livechat:setUpConnection', { token })
   }
+  // LIVECHAT WEBRTC ----->
+  async subscribeNotifyVisitor (uid: string): Promise<any> {
+    return ((await this.socket) as IDriver).subscribeNotifyVisitor(uid, this.credentials.token);
+  }
+  
+  async notifyWebrtcAgent (agentId: string, eventType: string, data: object): Promise<any> {
+    return ((await this.socket) as IDriver).notifyWebrtcAgent(agentId, eventType, data, this.credentials.token);
+  }
+
+  async notifyVisitorCalling(rid: string, data: object) {
+    return ((await this.socket) as IDriver).notifyVisitorCalling(rid, data, this.credentials.token);
+  }
+
+  async onAgentWebrtcNotification(cb: any): Promise<any> {
+    return ((await this.socket) as IDriver).onAgentWebrtcNotification(cb);
+  }
+
 }

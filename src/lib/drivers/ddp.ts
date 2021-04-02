@@ -594,4 +594,30 @@ export class DDPDriver extends EventEmitter implements ISocket, IDriver {
   methodCall = (method: string, ...args: any[]): Promise<any> => {
     return this.ddp.call(method, ...args)
   }
+  // LIVECHAT WEBRTC ---->
+  subscribeNotifyVisitor = (uid: string, token: string): Promise<any> => {
+    const topic = "stream-notify-user";
+    return this.subscribe(topic, `${uid}/webrtc`, { uid, token })
+  };
+  
+  notifyWebrtcAgent = (agentId: string, eventType: string, data: object, token: string) => {
+    return this.ddp.call("stream-notify-user", `${agentId}/webrtc`, eventType, data, { token });
+  };
+
+  notifyVisitorCalling = (rid: string, data: object, token: string) => {
+    return this.ddp.call('stream-notify-room-users', `${rid}/webrtc`, 'call', data, { token });
+  };
+
+  onAgentWebrtcNotification = (cb: any) => {
+    return this.ddp.on(
+      "stream-notify-user",
+      ({
+        fields: {
+          args: [type, data]
+        }
+      }: any) => {
+        cb(type, data);
+      }
+    ) as any;
+  };
 }
